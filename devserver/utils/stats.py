@@ -1,3 +1,6 @@
+import os
+import traceback
+
 try:
     from threading import local
 except ImportError:
@@ -51,6 +54,12 @@ class StatCollection(object):
             row['hits'] += 1
 
         if logger:
+            stack = traceback.extract_stack()
+            paths = ['%s:%s' % (filename, lineno) for filename, lineno, name, line in stack if 'python' not in filename and 'django' not in filename and 'site-packages' not in filename and 'devserver' not in filename]
+            base_dir = os.path.dirname(os.path.commonprefix(paths))
+            message = ' -> '.join(os.path.relpath(p, base_dir) for p in paths)
+            logger.debug(message)
+
             logger.debug('%s("%s") %s (%s)', func.__name__, args[0], 'Miss' if value is None else 'Hit', row['hits'], duration=this_time)
 
         return value

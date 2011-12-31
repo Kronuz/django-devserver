@@ -2,6 +2,8 @@
 Based on initial work from django-debug-toolbar
 """
 import re
+import os
+import traceback
 
 from datetime import datetime
 
@@ -60,6 +62,12 @@ class DatabaseStatTracker(DatabaseStatTracker):
     def execute(self, sql, params=()):
         formatted_sql = sql % (params if isinstance(params, dict) else tuple(params))
         if self.logger:
+            stack = traceback.extract_stack()
+            paths = ['%s:%s' % (filename, lineno) for filename, lineno, name, line in stack if 'python' not in filename and 'django' not in filename and 'site-packages' not in filename and 'devserver' not in filename]
+            base_dir = os.path.dirname(os.path.commonprefix(paths))
+            message = ' -> '.join(os.path.relpath(p, base_dir) for p in paths)
+            self.logger.debug(message)
+
             message = formatted_sql
             if settings.DEVSERVER_TRUNCATE_SQL:
                 message = truncate_sql(message, aggregates=settings.DEVSERVER_TRUNCATE_AGGREGATES)
@@ -94,6 +102,12 @@ class DatabaseStatTracker(DatabaseStatTracker):
             duration = ms_from_timedelta(stop - start)
 
             if self.logger:
+                stack = traceback.extract_stack()
+                paths = ['%s:%s' % (filename, lineno) for filename, lineno, name, line in stack if 'python' not in filename and 'django' not in filename and 'site-packages' not in filename and 'devserver' not in filename]
+                base_dir = os.path.dirname(os.path.commonprefix(paths))
+                message = ' -> '.join(os.path.relpath(p, base_dir) for p in paths)
+                self.logger.debug(message)
+
                 message = sqlparse.format(sql, reindent=True, keyword_case='upper')
 
                 message = 'Executed %s times\n%s' % message
